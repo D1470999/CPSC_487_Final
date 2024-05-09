@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>CPSC 487/587</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19.1/dist/lil-gui.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.3.0/math.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quaternion@1.5.1/quaternion.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/numeric@1.2.6/numeric-1.2.6.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stats.js@0.17.0/build/stats.min.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+              "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+              "three/": "https://unpkg.com/three@0.160.0/"
+            }
+        }
+    </script>
+</head>
+<body>
+<script type="module">
+    import {get_default_lil_gui, refresh_displays, ThreeEngine} from "./js/utils/utils_three.js";
+    let engine = ThreeEngine.new_default_3d();
+
+    let settings = {
+        shocked: 0,
+        devastated: 0,
+        happy: 0,
+        is_standing: true,
+        is_walking: false,
+        is_flying: false
+    }
+
+    let actions = {
+        reset: function() {
+            settings.shocked = 0;
+            settings.devastated = 0;
+            settings.happy = 0;
+            settings.is_standing = true;
+            settings.is_walking = false;
+            settings.is_flying = false;
+            refresh_displays(gui);
+        },
+        stand: function(){
+            settings.is_standing = true;
+            settings.is_walking = false;
+            settings.is_flying = false;
+            refresh_displays(gui);
+        },
+        walk: function(){
+            settings.is_standing = false;
+            settings.is_walking = true;
+            settings.is_flying = false;
+            refresh_displays(gui);
+        },
+        fly: function(){
+            settings.is_standing = false;
+            settings.is_walking = false;
+            settings.is_flying = true;
+            refresh_displays(gui);
+        }
+    };
+
+    let gui = get_default_lil_gui();
+    gui.add(settings, 'shocked', 0, 5);
+    gui.add(settings, 'devastated', 0, 5);
+    gui.add(settings, 'happy', 0, 5);
+
+    gui.add(actions, 'reset');
+    gui.add(actions, 'stand');
+    gui.add(actions, 'walk');
+    gui.add(actions, 'fly');
+
+    engine.animation_loop(() => {
+
+        let elapsedTime = engine.get_time_elapsed();
+        let theta = (elapsedTime % 1000) * 4* (Math.PI * 2);
+        let r = 1;
+        let x = r * Math.cos(theta);
+        let y = r * Math.sin(theta);
+
+        let head_dev_offset = -0.02*settings.devastated;
+
+        let whites_eye_dev_offset = Math.max(0.012*settings.devastated, 0.012*settings.happy, 0.013*settings.shocked);
+        let pupils_eye_dev_offset = Math.max(0.025*settings.devastated, 0.025*settings.happy);
+
+
+        let objects = [
+            { type: "sphere", position: [0, 0, 3 + head_dev_offset + 0.003 * settings.happy * y], radius: 1, color: 0xb8afd5, opacity: 1.0 }, //head_top
+            { type: "sphere", position: [0, 0, 3.4 + head_dev_offset + 0.003 * settings.happy * y], radius: 0.8, color: 0xb8afd5, opacity: 1.0 }, //head_bottom
+            {type: "cone", position1: [-0.32, 0.02*settings.shocked, 3.73 +head_dev_offset +0.003*settings.happy*y +0.1*settings.shocked], position2:[-0.85, 0.1*settings.shocked,4.5 +head_dev_offset +0.003*settings.happy*y +0.1*settings.shocked], radius: 0.75, color: 0x861d7b, opacity: 1.0},//hat left
+            {type: "cone", position1: [0.32, 0.02*settings.shocked, 3.73 +head_dev_offset +0.003*settings.happy*y +0.1*settings.shocked], position2: [0.85,0.1*settings.shocked,4.5 +head_dev_offset +0.003*settings.happy*y + 0.1*settings.shocked], radius: 0.75, color: 0x861d7b, opacity: 1.0},//hat right
+
+            {type: "sphere", position: [-0.25 -0.04*settings.shocked,-0.8 -0.06*settings.shocked,3.4 +head_dev_offset + 0.02*settings.happy +0.003*settings.happy*y + 0.04*settings.shocked], radius: 0.2 +whites_eye_dev_offset, color: 0xffffff, opacity: 1.0}, //left whites eye
+            {type: "sphere", position: [0.25 +0.04*settings.shocked,-0.8 -0.06*settings.shocked, 3.4 +head_dev_offset + 0.02*settings.happy +0.003*settings.happy*y +0.04*settings.shocked], radius: 0.2 +whites_eye_dev_offset, color: 0xffffff, opacity:1.0}, //right whites eye
+            {type: "sphere", position: [-0.25 -0.04*settings.shocked, -0.95 -0.1*settings.shocked,3.4 +head_dev_offset +0.02*settings.happy +0.003*settings.happy*y +0.04*settings.shocked], radius: 0.05 +pupils_eye_dev_offset, color: 0x000000, opacity: 1.0}, //left pupil
+            {type: "sphere", position: [0.25 +0.04*settings.shocked,-0.95 -0.1*settings.shocked,3.4 +head_dev_offset + 0.02*settings.happy +0.003*settings.happy*y +0.04*settings.shocked], radius: 0.05 +pupils_eye_dev_offset, color: 0x000000, opacity: 1.0}, //right pupil
+
+            {type: "sphere", position:[-0.3 -0.005*settings.happy,-1.1 + 0.01*settings.happy,3.45 +head_dev_offset +0.025*settings.happy +0.003*settings.happy*y], radius: Math.max(0.01*settings.devastated, 0.01*settings.happy), color: 0xffffff, opacity: 1.0}, //left pupil //left_tears
+            {type: "sphere", position: [0.2 -0.005*settings.happy,-1.1 + 0.01*settings.happy,3.45 +head_dev_offset +0.025*settings.happy +0.003*settings.happy*y], radius: Math.max(0.01*settings.devastated, 0.01*settings.happy), color: 0xffffff, opacity: 1.0}, //left pupil //right_tears
+
+            {type: "sphere", position: [-0.3 -0.015*settings.happy,-1.1 + 0.01*settings.happy,3.45 +head_dev_offset +0.01*settings.happy +0.003*settings.happy*y], radius: 0.005*settings.happy, color:0xffffff, opacity: 1.0}, //left pupil //left_tears happy
+            {type: "sphere", position: [0.2 -0.015*settings.happy,-1.1 + 0.01*settings.happy,3.45 +head_dev_offset +0.01*settings.happy +0.003*settings.happy*y], radius:  0.005*settings.happy, color: 0xffffff, opacity:1.0}, //left pupil //right_tears happy
+
+            {type: "sphere", position: [-0.055,-0.95,3.25 +head_dev_offset +0.003*settings.happy*y +0.05*settings.shocked], radius: 0.04 + 0.001*settings.happy +0.002*settings.shocked, color: 0xa6658a, opacity: 1.0}, //left_nostril
+            {type: "sphere", position: [0,-0.95,3.23 +head_dev_offset +0.003*settings.happy*y+0.05*settings.shocked], radius: 0.04, color: 0xa6658a, opacity:1.0}, //mid_nostril
+            {type: "sphere", position: [0.055,-0.95,3.25 +head_dev_offset +0.003*settings.happy*y+0.05*settings.shocked], radius: 0.04 + 0.001*settings.happy +0.002*settings.shocked, color: 0xa6658a, opacity: 1.0}, //right_nostril
+            {type: "cone", position1: [-0.1, -0.92, 3.1 - 0.01*settings.devastated -0.01*settings.happy +0.003*settings.happy*y], position2: [-0.1 + 0.01*settings.devastated -0.01*settings.happy, -0.92, 3 -0.01*settings.devastated -0.01*settings.happy +0.003*settings.happy*y], radius: 0.05, color: 0xffffff, opacity: 1.0}, //fang
+
+            {type: "line", position1: [-0.21 -0.03*settings.devastated -0.005*settings.happy +0.04*settings.shocked, -0.95, 3.1 -0.1*settings.devastated + 0.02*settings.happy +0.003*settings.happy*y + 0.02*settings.shocked], position2: [-0.17 +0.02*settings.shocked, -0.95, 3.1 -0.02*settings.devastated - 0.005*settings.happy +0.003*settings.happy*y +0.01*settings.shocked], pass: false, radius: 0.01, color: 0x000000, opacity: 1},//mouth [3.1-2.95]
+            {type: "line", position1: [-0.17 +0.02*settings.shocked, -0.95, 3.1 -0.02*settings.devastated - 0.005*settings.happy +0.003*settings.happy*y +0.01*settings.shocked], position2: [-0.07 +0.01*settings.shocked, -0.95, 3.1 -0.006*settings.devastated - 0.01*settings.happy +0.003*settings.happy*y +0.006*settings.shocked], pass: false, radius: 0.01, color: 0x000000, opacity: 1},//mouth [3.1-3]
+            {type: "line", position1: [-0.07+0.01*settings.shocked, -0.95, 3.1 -0.006*settings.devastated - 0.01*settings.happy +0.003*settings.happy*y +0.006*settings.shocked] , position2: [0.01*settings.shocked, -0.95, 3.1 -0.02*settings.devastated - 0.015*settings.happy +0.003*settings.happy*y +0.006*settings.shocked], pass: false, radius: 0.01, color: 0x000000, opacity: 1},//mouth [3.1-3.07]
+            {type: "line", position1: [0.01*settings.shocked, -0.95, 3.1 -0.02*settings.devastated - 0.015*settings.happy +0.003*settings.happy*y +0.006*settings.shocked], position2: [0.07 +0.01*settings.shocked, -0.95, 3.1 -0.006*settings.devastated - 0.01*settings.happy +0.003*settings.happy*y +0.006*settings.shocked], pass: false, radius: 0.01, color: 0x000000, opacity: 1},//mouth
+            {type: "line", position1: [0.07+0.01*settings.shocked, -0.95, 3.1 -0.006*settings.devastated - 0.01*settings.happy +0.003*settings.happy*y +0.006*settings.shocked], position2: [0.17+0.02*settings.shocked, -0.95, 3.1 -0.02*settings.devastated - 0.005*settings.happy +0.003*settings.happy*y +0.01*settings.shocked], pass: false, radius: 0.01, color: 0x000000, opacity: 1},//mouth
+            {type: "line", position1: [0.17+0.02*settings.shocked, -0.95, 3.1 -0.02*settings.devastated - 0.005*settings.happy +0.003*settings.happy*y +0.01*settings.shocked], position2: [0.21+0.04*settings.shocked +0.03*settings.devastated, -0.95, 3.1 -0.1*settings.devastated +0.02*settings.happy +0.003*settings.happy*y +0.02*settings.shocked], pass: false, radius: 0.01, color: 0x000000, opacity: 1},//mouth
+
+
+            {type: "cone", position1: [0,0,3 + head_dev_offset +0.003*settings.happy*y], position2: [0,0,1], radius: 1.3 + 0.05*settings.shocked, color: 0Xcb3697, opacity: 1.0}, //neck
+            {type: "cone", position1: [0,0,1 +0.003*settings.happy*y], position2: [0,0,4 +0.003*settings.happy*y], radius: 1.7 +0.1*settings.shocked, color: 0x861d7b, opacity: 1.0},//torso
+
+            {type: "cone", position1: [-1.5 + 0.25*settings.devastated, -0.18*settings.devastated, 1.8 +0.15*settings.devastated +0.1*settings.happy*y +0.003*settings.happy*y +0.2*settings.shocked], position2: [0, 0, 2.6 +0.003*settings.happy*y - 0.15*settings.shocked], radius: 0.4, color: 0x861d7b, opacity: 1.0},
+            {type: "sphere", position: [-1.5 + 0.25*settings.devastated - 0.1*settings.shocked, -0.18*settings.devastated, 1.8 + 0.15*settings.devastated +0.1*settings.happy*y +0.003*settings.happy*y +0.26*settings.shocked], radius: 0.3, color: 0xb8afd5, opacity: 1.0}, //left hand
+
+            {type: "cone", position1: [1.5 - 0.25*settings.devastated, -0.18*settings.devastated, 1.8 +0.15*settings.devastated +0.1*settings.happy*y +0.003*settings.happy*y +0.2*settings.shocked], position2: [0, 0, 2.6 +0.003*settings.happy*y - 0.15*settings.shocked], radius: 0.4, color: 0x861d7b, opacity: 1.0}, //right arm
+            {type: "sphere", position: [1.5 - 0.25*settings.devastated + 0.1*settings.shocked, -0.18*settings.devastated, 1.8 + 0.15*settings.devastated +0.1*settings.happy*y +0.003*settings.happy*y +0.26*settings.shocked],radius: 0.3, color: 0xb8afd5, opacity: 1.0}, //right hand
+
+            {type: "cone", position1: [-0.7,0,1 +0.003*settings.happy*y  - 0.1*settings.shocked], position2: [-0.7 -0.1*settings.shocked, 0.1*settings.happy*y,0.003*settings.happy*y  - 0.1*settings.shocked], radius: 0.5,color: 0xb8afd5, opacity: 1.0}, //left leg
+            {type: "cone", position1: [0.7,0,1 +0.003*settings.happy*y - 0.1*settings.shocked], position2: [0.7 + 0.1*settings.shocked,0.1*settings.happy*-y,0.003*settings.happy*y - 0.1*settings.shocked], radius: 0.5, color: 0xb8afd5, opacity: 1.0}, //right leg
+
+            //tail
+            {type: "sphere", position: [0.03*settings.happy*x,1,0.9 + 0.03*settings.happy*y], radius: 0.3, color: 0xb8afd5, opacity: 1.0},
+            {type: "sphere", position: [0.05*settings.happy*x,1.2,0.6 + 0.05*settings.happy*y + 0.2*settings.shocked], radius: 0.3, color: 0xb8afd5, opacity: 1.0},
+            {type: "sphere", position: [0.07*settings.happy*x,1.4,0.5 - 0.05*settings.devastated + 0.07*settings.happy*y + 0.24*settings.shocked], radius: 0.3, color: 0xb8afd5, opacity: 1.0},
+            {type: "sphere", position: [0.12*settings.happy*x,1.6,0.55 -0.1*settings.devastated + 0.12*settings.happy*y + 0.32*settings.shocked], radius: 0.3, color: 0xb8afd5, opacity:1.0},
+            {type: "sphere", position: [0.2*settings.happy*x,1.8,0.6 -0.18*settings.devastated + 0.2*settings.happy*y + 0.4*settings.shocked], radius: 0.3, color: 0xb8afd5, opacity: 1.0},
+            {type: "sphere", position: [0.3*settings.happy*x,2.0,0.7 -0.25*settings.devastated + 0.3*settings.happy*y + 0.5*settings.shocked], radius: 0.3, color: 0xb8afd5, opacity: 1.0}
+        ];
+
+        let walking_theta = (elapsedTime % 1000) * 2* (Math.PI * 2);
+        let rw = 1;
+        let xw = rw * Math.cos(walking_theta);
+        let yw = rw * Math.sin(walking_theta);
+
+        //walking animation
+        if (settings.is_walking) {
+            objects[28].position2[1] += 0.4*yw; //left leg
+            objects[29].position2[1] -= 0.4*yw; //right leg
+
+            objects[24].position1[1] -= 0.3*yw; //left arm
+            objects[25].position[1] -= 0.3*yw; //left hand
+            objects[26].position1[1] += 0.3*yw; //right arm
+            objects[27].position[1] += 0.3*yw; //right hand
+
+            objects.forEach(obj => {
+                switch (obj.type) {
+                    case "sphere":
+                        obj.position[2] += 0.1*yw;
+                        break;
+                    case "cone":
+                        obj.position1[2] += 0.1*yw;
+                        obj.position2[2] += 0.1*yw;
+                        break;
+                    case "line":
+                        obj.position1[2] += 0.1*yw;
+                        obj.position2[2] += 0.1*yw;
+                        break;
+                }
+            });
+        }
+
+        let flying_theta = (elapsedTime % 1000) * 8* (Math.PI * 2);
+        let rf = 2;
+        let xf = rf * Math.cos(flying_theta);
+        let yf = rf * Math.sin(flying_theta);
+
+        //function to rotate a point around the x-axis
+        function rotatePointX(point, angle) {
+            const y = point[1] * Math.cos(angle) - point[2] * Math.sin(angle);
+            const z = point[1] * Math.sin(angle) + point[2] * Math.cos(angle);
+            return [point[0], y, z];
+        }
+
+        let rotationAngle = Math.PI / 5;
+
+        //flying animation
+        if (settings.is_flying) {
+            //tail
+            objects[30].position[0] += 0.25*xf;
+            objects[30].position[2] += 0.25*yf;
+
+            objects[31].position[0] += 0.3*xf;
+            objects[31].position[2] += 0.3*yf;
+
+            objects[32].position[0] += 0.4*xf;
+            objects[32].position[2] += 0.4*yf;
+
+            objects[33].position[0] += 0.5*xf;
+            objects[33].position[2] += 0.5*yf;
+
+            objects[34].position[0] += 0.6*xf;
+            objects[34].position[2] += 0.6*yf;
+
+            objects[35].position[0] += 0.7*xf;
+            objects[35].position[2] += 0.7*yf;
+
+            objects.forEach(obj => {
+                switch (obj.type) {
+                    case "sphere":
+                        obj.position = rotatePointX(obj.position, rotationAngle);
+                        obj.position[2] += 0.3*yw +2;
+                        break;
+                    case "cone":
+                        obj.position1 = rotatePointX(obj.position1, rotationAngle);
+                        obj.position2 = rotatePointX(obj.position2, rotationAngle);
+                        obj.position1[2] += 0.3*yw +2;
+                        obj.position2[2] += 0.3*yw +2;
+                        break;
+                    case "line":
+                        obj.position1 = rotatePointX(obj.position1, rotationAngle);
+                        obj.position2 = rotatePointX(obj.position2, rotationAngle);
+                        obj.position1[2] += 0.3*yw +2;
+                        obj.position2[2] += 0.3*yw +2;
+                        break;
+                }
+            });
+        }
+
+        //draw everything
+        objects.forEach(obj => {
+            switch (obj.type) {
+                case "sphere":
+                    engine.draw_debug_sphere(obj.position, obj.radius, obj.color, obj.opacity);
+                    break;
+                case "cone":
+                    engine.draw_debug_cone(obj.position1, obj.position2, obj.radius, obj.color, obj.opacity);
+                    break;
+                case "line":
+                    engine.draw_debug_line(obj.position1, obj.position2, obj.pass, obj.radius, obj.color, obj.opacity);
+                    break;
+            }
+        });
+
+
+
+        //shocked mouth
+        if (settings.shocked > 4){
+            if (settings.is_walking){
+                engine.draw_debug_sphere([0.1, -0.7, 3+ 0.1*yw], 0.45, 0x000000, 1);
+                engine.draw_debug_cone([-0.03, -0.88, 3.37 +0.1*yw], [-0.08, -1, 3.32 +0.1*yw], 0.04, 0xffffff, 1);
+            }
+            else if (settings.is_flying) {
+                engine.draw_debug_sphere([0.1, -2.3, 3.95 + 0.3*yw], 0.45, 0x000000, 1);
+                engine.draw_debug_cone([-0.03, -2.72, 4.1 + 0.3*yw], [-0.08, -2.72, 4 + 0.3*yw], 0.04, 0xffffff, 1);
+            }
+            else{
+                engine.draw_debug_sphere([0.1, -0.7, 3], 0.45, 0x000000, 1);
+                engine.draw_debug_cone([-0.03, -0.88, 3.37], [-0.08, -1, 3.32], 0.04, 0xffffff, 1);
+            }
+
+        }
+
+    });
+
+</script>
+</body>
+</html>
